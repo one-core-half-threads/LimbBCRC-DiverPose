@@ -1,0 +1,247 @@
+GPUS: '0'
+SEED: 1949
+DATA_DIR: ''
+OUTPUT_DIR: 'output'
+
+UNSUP_TRANSFORM: True
+CONS_RAND_AUG: False
+RAND_MAGNITUDE: 20
+
+USE_JointCutout_AUG: False
+MASK_JOINT_NUM: 5
+USE_JointCutMix_AUG: False
+KP_CutMix_JOINT_NUM: 2
+USE_Cutout_AUG: False
+MASK_HOLES_NUM_CO: 5
+USE_CutMix_AUG: False
+MASK_HOLES_NUM_CM: 2
+USE_MixUp_AUG: False
+USE_RandAug_AUG: False
+
+
+WORKERS: 24
+PRINT_FREQ: 47
+CUDNN:
+ BENCHMARK: False
+ DETERMINISTIC: True
+ ENABLED: True
+
+
+DATASET:
+  TRAIN_DATASET: mix_mpii_ai
+  TEST_DATASET: mpii
+  ROOT: 'data/'
+  TRAIN_SET: train
+  TEST_SET: valid
+  DATA_FORMAT: jpg
+  COLOR_RGB: true
+  FLIP: true
+  ROT_FACTOR: 90
+  SCALE_FACTOR: 0.25
+  NUM_JOINTS_HALF_BODY: 8
+  PROB_HALF_BODY: -1.0
+
+  # Deterministic labeled-training-set subset switches; enable at most one.
+  # 50%: keep annotation-order indices 0, 2, 4, ...
+  # 75%: keep the first three records in every consecutive group of four.
+  # 25%: keep annotation-order indices 0, 4, 8, ...
+  LABELED_SUBSET_25: false
+  LABELED_SUBSET_50: false
+  LABELED_SUBSET_75: false
+  LIMB_HEATMAP_SIGMA: 2.0
+  LIMB_HEATMAP_TRUNCATE: 3.0
+
+MODEL:
+  NAME: pose_hetero_limb
+  BACKBONE: hrnet
+  NUM_JOINTS: 16
+  INIT_WEIGHTS: true
+  PRETRAINED: 'models/pytorch/imagenet/hrnet_w48-model_best-MPII-chunyou100lungai.pth'
+  IMAGE_SIZE:
+  - 256
+  - 256
+  EXTRA:
+    TARGET_TYPE: gaussian
+    HEATMAP_SIZE:
+    - 64
+    - 64
+    SIGMA: 3
+    PRETRAINED_LAYERS:
+    - 'conv1'
+    - 'bn1'
+    - 'conv2'
+    - 'bn2'
+    - 'layer1'
+    - 'transition1'
+    - 'stage2'
+    - 'transition2'
+    - 'stage3'
+    - 'transition3'
+    - 'stage4'
+    FINAL_CONV_KERNEL: 1
+    STAGE2:
+      NUM_MODULES: 1
+      NUM_BRANCHES: 2
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      FUSE_METHOD: SUM
+    STAGE3:
+      NUM_MODULES: 4
+      NUM_BRANCHES: 3
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      - 192
+      FUSE_METHOD: SUM
+    STAGE4:
+      NUM_MODULES: 3
+      NUM_BRANCHES: 4
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      - 192
+      - 384
+      FUSE_METHOD: SUM
+
+LIMB_MODEL:
+  NAME: pose_hrnet
+  BACKBONE: hrnet
+  NUM_JOINTS: 15
+  INIT_WEIGHTS: true
+  PRETRAINED: 'models/pytorch/imagenet/HRNet_Limb_pretrained.pth.tar'
+  IMAGE_SIZE:
+  - 256
+  - 256
+  EXTRA:
+    TARGET_TYPE: gaussian
+    HEATMAP_SIZE:
+    - 64
+    - 64
+    SIGMA: 3
+    PRETRAINED_LAYERS:
+    - 'conv1'
+    - 'bn1'
+    - 'conv2'
+    - 'bn2'
+    - 'layer1'
+    - 'transition1'
+    - 'stage2'
+    - 'transition2'
+    - 'stage3'
+    - 'transition3'
+    - 'stage4'
+    FINAL_CONV_KERNEL: 1
+    STAGE2:
+      NUM_MODULES: 1
+      NUM_BRANCHES: 2
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      FUSE_METHOD: SUM
+    STAGE3:
+      NUM_MODULES: 4
+      NUM_BRANCHES: 3
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      - 192
+      FUSE_METHOD: SUM
+    STAGE4:
+      NUM_MODULES: 3
+      NUM_BRANCHES: 4
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 48
+      - 96
+      - 192
+      - 384
+      FUSE_METHOD: SUM
+
+HETERO_LIMB:
+  ENABLED: true
+  NUM_LIMBS: 15
+  PARENT_IDS: [1, 2, 6, 6, 3, 4, 6, 6, 7, 8, 11, 12, 8, 8, 13, 14]
+  KP_SUP_WEIGHT: 1.0
+  LIMB_SUP_WEIGHT: 1.0
+  KK_WEIGHT: 1.0
+  BB_WEIGHT: 0.1
+  B_TO_K_WEIGHT: 0.003
+  B_TO_K_DICE_WEIGHT: 1
+  K_TO_B_WEIGHT: 0.01
+  WARMUP_EPOCH: 7
+  SOFTARGMAX_BETA: 50.0
+  LIMB_SAMPLE_NUM: 16
+  LIMB_TEACHER_MIN_PEAK: 0.0
+  K_TO_B_MIN_PEAK: 0.00
+  K_TO_B_USE_ENDPOINT_VIS: false
+  LIMB_HEATMAP_SIGMA: 2.0
+  LIMB_HEATMAP_TRUNCATE: 3.0
+
+LOSS:
+  USE_TARGET_WEIGHT: true
+
+TRAIN:
+  BATCH_SIZE: 12
+  SHUFFLE: true
+  BEGIN_EPOCH: 0
+  END_EPOCH: 100
+  RESUME: true
+  OPTIMIZER: adam
+  LR: 0.0001
+  LR_FACTOR: 0.4
+  LR_STEP:
+  - 30
+  - 70
+  WD: 0.0001
+  GAMMA1: 0.99
+  GAMMA2: 0.0
+  MOMENTUM: 0.9
+  NESTEROV: false
+
+TEST:
+  MODEL_FILE: ''
+  BATCH_SIZE: 32
+  BBOX_THRE: 1.0
+  FLIP_TEST: false
+  IMAGE_THRE: 0.0
+  IN_VIS_THRE: 0.2
+  NMS_THRE: 1.0
+  OKS_THRE: 0.9
+  USE_GT_BBOX: true
+
+DEBUG:
+  DEBUG: false
+  SAVE_BATCH_IMAGES_GT: true
+  SAVE_BATCH_IMAGES_PRED: true
+  SAVE_HEATMAPS_GT: true
+  SAVE_HEATMAPS_PRED: true
